@@ -1,0 +1,1 @@
+#Simple Bigram HMM Part-Of-Speech Tagger implemented in python.
