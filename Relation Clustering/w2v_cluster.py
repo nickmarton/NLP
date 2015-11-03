@@ -1,8 +1,5 @@
 """
 Nicholas Marton
-661013221
-
-Natural Language Processing Assignment 3.
 
 To build dependencies, use
 1. pip install word2vec
