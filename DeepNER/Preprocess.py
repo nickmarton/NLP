@@ -157,8 +157,9 @@ def make_vectors(data_frame, size=100, wt_sep='~~~'):
     pd_data.to_csv('./vectors/vectors' + str(size) + '.csv', encoding='utf-8')
 
 def main():
-    """."""
+    """Quick tests."""
 
+    #FOR COMPARISON
     #text8
     #Vocab size: 428554
     #Words in train file: 15772268
@@ -166,7 +167,7 @@ def main():
     set_verbosity(0)
 
     df = get_data()
-    make_vectors(df, size=100)
+    make_vectors(df, size=10)
 
 if __name__ == "__main__":
     main()
