@@ -1,6 +1,7 @@
 """Preprocessing module."""
 
 import os
+import sys
 import codecs
 import logging
 import gensim
@@ -159,15 +160,24 @@ def make_vectors(data_frame, size=100, wt_sep='~~~'):
 def main():
     """Quick tests."""
 
-    #FOR COMPARISON
+    #FOR COMPARISON:
     #text8
     #Vocab size: 428554
     #Words in train file: 15772268
 
     set_verbosity(0)
+    
+    try:
+        size = int(sys.argv[1])
+    except ValueError:
+        logging.critical('Invalid vector size provided; defaulting to 100')
+        size = 100
+    except IndexError:
+        logging.critical('No vector size provided; defaulting to 100')
+        size = 100
 
     df = get_data()
-    make_vectors(df, size=10)
+    make_vectors(df, size=size)
 
 if __name__ == "__main__":
     main()

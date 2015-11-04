@@ -51,14 +51,14 @@ def map_labels(labels, all_tags):
     return mapped_labels, mapping
 
 def init_dbn(topology, learn_rates=0.3, learn_rate_decays=0.9, epochs=10, verbose=1):
-    """Initialize a DBN object."""
+    """Initialize a DBN object with parameters provided."""
 
     dbn = DBN(
         topology,
-        learn_rates = 0.3,
-        learn_rate_decays = 0.9,
-        epochs = 10,
-        verbose = 1)
+        learn_rates=learn_rates,
+        learn_rate_decays=learn_rate_decays,
+        epochs=epochs,
+        verbose=verbose)
 
     return dbn
 
@@ -66,7 +66,7 @@ def main():
     """."""
 
     #make training and test sets
-    train_data, test_data = make_data('./vectors/vectors100.csv')
+    train_data, test_data = make_data('./vectors/vectors1000.csv')
 
 
     #split sets into their components
@@ -83,7 +83,7 @@ def main():
 
 
     #initialize a DBN
-    topology = [train_vectors.shape[1], 300, 300, 300, 300, 300, len(all_tags)]
+    topology = [train_vectors.shape[1], 300, len(all_tags)]
     dbn = init_dbn(topology)
 
     #fit DBN
