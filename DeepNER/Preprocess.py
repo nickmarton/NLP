@@ -6,10 +6,19 @@ import logging
 import gensim
 import pandas as pd
 
-logging.basicConfig(
-    format='%(asctime)s:\t %(message)s',
-    datefmt='%m/%d/%Y %I:%M:%S %p',
-    level=logging.INFO)
+def set_verbosity(verbose_level=3):
+    """Set the level of verbosity of the Preprocessing."""
+    verbosity = [
+        logging.CRITICAL,
+        logging.ERROR,
+        logging.WARNING,
+        logging.INFO,
+        logging.DEBUG]
+
+    logging.basicConfig(
+        format='%(asctime)s:\t %(message)s',
+        datefmt='%m/%d/%Y %I:%M:%S %p',
+        level=verbosity[verbose_level])
 
 def get_data(filename='./data.csv'):
     """
@@ -91,15 +100,34 @@ def make_vectors(data_frame, size=100):
     """Buils model from DataFrame object and save vectors."""
     sentences = [[word] for word in list(data_frame['word'])]
     logging.info("Building Word2Vec model:")
+    #build model and save vectors into txt file
     model = gensim.models.Word2Vec(sentences, min_count=1, size=size)
-    model.save_word2vec_format('./vectors' + str(size) + '.txt')
+    model.save_word2vec_format('./vectors/vectors' + str(size) + '.txt')
+
+    #convert .txt file into list of lists of word-vector pairs
+    word_and_vectors = []
+    with open('./vectors/vectors' + str(size) + '.txt', 'r') as f:
+        for line in f:
+            word_and_vectors.append(line.split())
+
+    #create names for columns holding vector features in csv
+    vec_columns = ['vec[' + str(i) + ']' for i in range(size)]
+
+    #make pandas DataFrame object with words and vectors and save to csv
+    pd_data = pd.DataFrame(word_and_vectors[1:], columns=['word'] + vec_columns)
+    pd_data.to_csv('./vectors/vectors' + str(size) + '.csv', encoding='utf-8')
 
 def main():
     """."""
+
+    #text8
+    #Vocab size: 428554
+    #Words in train file: 15772268
+
+    set_verbosity()
+
     df = get_data()
-    make_vectors(df, size=100)
-
-
+    make_vectors(df, size=300)
 
 if __name__ == "__main__":
     main()
