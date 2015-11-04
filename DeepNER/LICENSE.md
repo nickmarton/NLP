@@ -1,7 +1,7 @@
 The MIT License (MIT)
 =====================
 
-Copyright (c) 2015 Nicholas Marton & Ian O'Boyle
+Copyright (c) 2015 Nicholas Marton
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
