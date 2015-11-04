@@ -1,1 +1,1 @@
-#Distributed Calendar application using the Paxos algorithm
+#Deep Learning for Named Entity Recognition
