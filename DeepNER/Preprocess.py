@@ -59,65 +59,18 @@ def get_data(filename='./data.csv'):
                         #write to log every 1000 words
                         if counter % 100000 == 0:
                             logging.info(str(counter) + " words processed.")
-                        """
-                        if counter == 64006:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 222501:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 308807:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 416281:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 416282:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 416284:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 717334:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 750377:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 750378:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 750380:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 750381:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 750382:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 750383:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 750384:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        if counter == 750386:
-                            lll = line.strip('\n').split('\t')
-                            print lll
-                        """
-
 
         logging.info("TOTAL AMOUNT OF MALFORMED LINES: " + str(bad_lines))
         logging.info("TOTAL AMOUNT OF GOOD LINES: " + str(good_lines))
         logging.info("TOTAL LINES: " + str(line_count))
 
-
         #make DataFrame object from data string
         pd_data = pd.DataFrame(data, columns=['word', 'tag'])
+        logging.info("Done creating DataFrame")
 
         #if output file provided, write csv, otherwise return DataFrame
         pd_data.to_csv(output_file, encoding='utf-8')
+        logging.info("Done writing csv\n")
 
     def load_csv(input_file=filename):
         """Load csv data file into pandas DataFrame object."""
@@ -135,8 +88,9 @@ def get_data(filename='./data.csv'):
         return load_csv(input_file=filename)
 
 def make_vectors(data_frame, size=100):
-    """."""
+    """Buils model from DataFrame object and save vectors."""
     sentences = [[word] for word in list(data_frame['word'])]
+    logging.info("Building Word2Vec model:")
     model = gensim.models.Word2Vec(sentences, min_count=1, size=size)
     model.save_word2vec_format('./vectors' + str(size) + '.txt')
 
