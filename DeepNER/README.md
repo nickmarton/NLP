@@ -4,7 +4,7 @@
 ---
 1. ~~Scrubbing/Preprocessing data~~
 2. ~~Word vector conversion~~
-3. DBN model set up
+3. ~~DBN model set up~~
 4. DBN training and testing 
 5. DBN feature extraction 
 6. CRF model set up 
