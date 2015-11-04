@@ -8,6 +8,12 @@ import pandas as pd
 
 def set_verbosity(verbose_level=3):
     """Set the level of verbosity of the Preprocessing."""
+    if not type(verbose_level) == int:
+        raise TypeError("verbose_level must be an int")
+
+    if verbose_level < 0 or verbose_level > 4:
+        raise ValueError("verbose_level must be between 0 and 4")
+
     verbosity = [
         logging.CRITICAL,
         logging.ERROR,
@@ -96,25 +102,58 @@ def get_data(filename='./data.csv'):
         make_csv(output_file=filename)
         return load_csv(input_file=filename)
 
-def make_vectors(data_frame, size=100):
+def make_vectors(data_frame, size=100, wt_sep='~~~'):
     """Buils model from DataFrame object and save vectors."""
-    sentences = [[word] for word in list(data_frame['word'])]
-    logging.info("Building Word2Vec model:")
+    if not type(wt_sep) == str:
+        raise TypeError('wt_sep parameter must be of type string')
+
+    words = [word for word in data_frame['word'].tolist()]
+    tags = [tag for tag in list(data_frame['tag'])]
+
+    #ensure word, tag separator is not in any word within the data so we can
+    #recover words and tags later without ambiguity
+    for word in words:
+        if wt_sep in word:
+            logging.critical(
+                'ERROR: ' + wt_sep + ' appears in \'' + word + '\' in data')
+
+    sentences = [[words[i] + '~~~' + tags[i]] for i in range(len(words))]
+
+
     #build model and save vectors into txt file
+    logging.info("Building Word2Vec model:")
     model = gensim.models.Word2Vec(sentences, min_count=1, size=size)
+    logging.info(
+        "Saving vectors from model in ./vectors/vectors" + str(size) + ".txt")
     model.save_word2vec_format('./vectors/vectors' + str(size) + '.txt')
 
-    #convert .txt file into list of lists of word-vector pairs
-    word_and_vectors = []
+
+    #convert .txt file into list of lists of word-vector pairs and drop
+    #dimensional summary
+    word_tag_and_vectors = []
     with open('./vectors/vectors' + str(size) + '.txt', 'r') as f:
         for line in f:
-            word_and_vectors.append(line.split())
+            word_tag_and_vectors.append(line.split())
+
+    word_tag_and_vectors = word_tag_and_vectors[1:]
+
+
+    #split word-tag pairs from vectors and rewrite data with words and tags
+    #in their own respective columns
+    words_tag_pairs = [p[0] for p in word_tag_and_vectors]
+    vectors = [v[1:] for v in word_tag_and_vectors]
+    data = []
+    
+    for i in range(len(words_tag_pairs)):
+        word, tag = words_tag_pairs[i].split(wt_sep)
+        data.append([word, tag] + vectors[i])
+
 
     #create names for columns holding vector features in csv
     vec_columns = ['vec[' + str(i) + ']' for i in range(size)]
 
     #make pandas DataFrame object with words and vectors and save to csv
-    pd_data = pd.DataFrame(word_and_vectors[1:], columns=['word'] + vec_columns)
+    pd_data = pd.DataFrame(data, columns=['word', 'tag'] + vec_columns)
     pd_data.to_csv('./vectors/vectors' + str(size) + '.csv', encoding='utf-8')
 
 def main():
@@ -124,10 +163,10 @@ def main():
     #Vocab size: 428554
     #Words in train file: 15772268
 
-    set_verbosity()
+    set_verbosity(0)
 
     df = get_data()
-    make_vectors(df, size=300)
+    make_vectors(df, size=100)
 
 if __name__ == "__main__":
     main()
