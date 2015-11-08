@@ -27,7 +27,7 @@ def set_verbosity(verbose_level=3):
         datefmt='%m/%d/%Y %I:%M:%S %p',
         level=verbosity[verbose_level])
 
-def get_data(filename='./data.csv'):
+def get_data(filename='./word_and_tags.csv'):
     """
     Try to read data from filename. 
     
@@ -157,6 +157,30 @@ def make_vectors(data_frame, size=100, wt_sep='~~~'):
     pd_data = pd.DataFrame(data, columns=['word', 'tag'] + vec_columns)
     pd_data.to_csv('./vectors/vectors' + str(size) + '.csv', encoding='utf-8')
 
+def extract_matches(data_frame, raw_file='./vectors/raw_googlevectors.txt'):
+    """Extract matches of word + vectors in raw file also in DataFrame."""
+    words = data_frame['word'].tolist()
+
+    from collections import defaultdict
+    m = defaultdict(list)
+    for word in words:
+        m[word[0:1]].append(word)
+
+    f_write = open("./vectors/subset" + raw_file[13:], 'w')    
+
+    counter = 0
+    with open(raw_file, 'r') as f:
+        for line in f:
+
+            counter += 1
+            
+            word = line.split()[0]
+            if word in m[word[0:1]]:
+                f_write.write(line)
+
+            if counter % 10000 == 0:
+                logging.info(str(counter) + " words processed")
+
 def main():
     """Quick tests."""
 
@@ -165,19 +189,23 @@ def main():
     #Vocab size: 428554
     #Words in train file: 15772268
 
-    set_verbosity(0)
+    set_verbosity()
     
     try:
         size = int(sys.argv[1])
     except ValueError:
-        logging.critical('Invalid vector size provided; defaulting to 100')
+        logging.error('Invalid vector size provided; defaulting to 100')
         size = 100
     except IndexError:
-        logging.critical('No vector size provided; defaulting to 100')
+        logging.error('No vector size provided; defaulting to 100')
         size = 100
 
+
     df = get_data()
-    make_vectors(df, size=size)
+    #make_vectors(df, size=size)
+    
+    #extract_matches(df, raw_file='./vectors/raw_googlevectors.txt')
+    #extract_matches(df, raw_file='./vectors/raw_knowledge-vectors-skipgram1000.txt')
 
 if __name__ == "__main__":
     main()
