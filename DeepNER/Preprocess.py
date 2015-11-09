@@ -2,6 +2,7 @@
 
 import os
 import sys
+import nltk
 import codecs
 import logging
 import gensim
@@ -34,6 +35,14 @@ def get_data(filename='./word_and_tags.csv'):
     If reading fails create csv file with that filename from private data
     and then read it.
     """
+
+    def add_pos_tags(sent):
+        """
+        Add part of speech tags to 2-tuples word-label pairs in sentence parameter.
+        """
+
+        tokens = [token for token, label in sent]
+        tagged = nltk.pos_tag(tokens)
 
     def make_csv(root="./Data/", output_file=filename):
         """
@@ -80,9 +89,33 @@ def get_data(filename='./word_and_tags.csv'):
         logging.info("TOTAL AMOUNT OF GOOD LINES: " + str(good_lines))
         logging.info("TOTAL LINES: " + str(line_count))
 
+
+        #Add pos tag to data
+        logging.info("Adding POS tags to data of size: " + str(len(data)))
+
+        nltk.download('punkt', 'maxent_treebank_pos_tagger')
+        tokens = [d[0] for d in data]
+        logging.info("Beginning POS tagging process")
+        tagged = nltk.pos_tag(tokens)
+        logging.info("Done POS tagging process; beginning appending")
+        
+        new_data = []
+        for i in range(len(data)):
+            word, ner_tag = data[i]
+            pos_tag = tagged[i][1]
+            new_data.append([word, pos_tag, ner_tag])
+
+            if i % 10000 == 0:
+                logging.info(str(i) + " words processed")
+
+
         #make DataFrame object from data string
-        pd_data = pd.DataFrame(data, columns=['word', 'tag'])
+        pd_data = pd.DataFrame(new_data, columns=['word', 'POS', 'NER'])
         logging.info("Done creating DataFrame")
+
+        pd_data = pd_data.drop_duplicates()
+
+        logging.info("Droping duplicates; new size: " + str(len(pd_data)))
 
         #if output file provided, write csv, otherwise return DataFrame
         pd_data.to_csv(output_file, encoding='utf-8')
@@ -200,8 +233,8 @@ def main():
         logging.error('No vector size provided; defaulting to 100')
         size = 100
 
-
     df = get_data()
+
     #make_vectors(df, size=size)
     
     #extract_matches(df, raw_file='./vectors/raw_googlevectors.txt')

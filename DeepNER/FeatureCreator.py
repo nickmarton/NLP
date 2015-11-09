@@ -101,8 +101,9 @@ def main():
 
     set_verbosity(0)
     #make training and test sets
-    #train_data, valid_data, test_data = make_data('./vectors/vectors100.csv', test_size=0.20)
+    #train_data, valid_data, test_data = make_data('./vectors/vectors300.csv', test_size=0.20)
     train_data, valid_data, test_data = make_data('./vectors/googlevectors300.csv', test_size=0.20)
+    #train_data, valid_data, test_data = make_data('./vectors/subset_googlevectors.csv', test_size=0.20)
     logging.info("Created raw training and test sets")
 
 
@@ -121,7 +122,7 @@ def main():
     valid_labels, mapping = map_labels(valid_labels, all_tags)
     test_labels, mapping = map_labels(test_labels, all_tags)
     logging.info('Created parsed training and test data')
-    
+
 
     #prep data for lisa-labs DBN; convert to Theano
     train_set = (train_vectors, train_labels)
@@ -136,8 +137,6 @@ def main():
     valid_set = (valid_set_x, valid_set_y)
     test_set = (test_set_x, test_set_y)
     datasets = (train_set, valid_set, test_set)
-
-
 
 
     finetune_lr=0.1
@@ -155,9 +154,12 @@ def main():
     numpy_rng = np.random.RandomState(123)
     print '... building the model'
     # construct the Deep Belief Network
-    #dbn = DBN(numpy_rng=numpy_rng, n_ins=28 * 28, hidden_layers_sizes=[1000, 1000, 1000], n_outs=10)
 
-    dbn = DBN(numpy_rng=numpy_rng, n_ins=train_vectors.shape[1], hidden_layers_sizes=[200, 200], n_outs=len(all_tags))
+    dbn = DBN(
+        numpy_rng=numpy_rng,
+        n_ins=train_vectors.shape[1],
+        hidden_layers_sizes=[200, 200],
+        n_outs=len(all_tags))
 
     # start-snippet-2
     #########################
