@@ -89,13 +89,19 @@ def map_labels(labels, all_tags):
 
     return mapped_labels, mapping
 
+def dump_model(model):
+    """Dump DBN object into pickled file."""
+    import pickle
+    logging.info("Dumping model into model.pkl")
+    with open('model.pkl', 'w') as dump_file:
+        pickle.dump(model, dump_file)
+
 def main():
     """."""
 
     set_verbosity(0)
-    #'''
     #make training and test sets
-    #train_data, test_data = make_data('./vectors/vectors100.csv', test_size=0.20)
+    #train_data, valid_data, test_data = make_data('./vectors/vectors100.csv', test_size=0.20)
     train_data, valid_data, test_data = make_data('./vectors/googlevectors300.csv', test_size=0.20)
     logging.info("Created raw training and test sets")
 
@@ -110,12 +116,14 @@ def main():
     train_tags, valid_tags, test_tags = np.unique(train_labels), np.unique(valid_labels), np.unique(test_labels)
     all_tags = list(set(train_tags) | set(valid_tags) | set(test_tags))
 
+    #map labels in each set to ints
     train_labels, mapping = map_labels(train_labels, all_tags)
     valid_labels, mapping = map_labels(valid_labels, all_tags)
     test_labels, mapping = map_labels(test_labels, all_tags)
     logging.info('Created parsed training and test data')
-    #'''
     
+
+    #prep data for lisa-labs DBN; convert to Theano
     train_set = (train_vectors, train_labels)
     valid_set = (valid_vectors, valid_labels)
     test_set = (test_vectors, test_labels)
@@ -124,15 +132,16 @@ def main():
     valid_set_x, valid_set_y = cast_to_Theano(valid_set)
     test_set_x, test_set_y = cast_to_Theano(test_set)
 
-
-
     train_set = (train_set_x, train_set_y)
     valid_set = (valid_set_x, valid_set_y)
     test_set = (test_set_x, test_set_y)
     datasets = (train_set, valid_set, test_set)
 
+
+
+
     finetune_lr=0.1
-    pretraining_epochs=100
+    pretraining_epochs=10
     pretrain_lr=0.01
     k=1
     training_epochs=1000
@@ -269,6 +278,7 @@ def main():
                           os.path.split(__file__)[1] +
                           ' ran for %.2fm' % ((end_time - start_time)
                                               / 60.))
-    
+
+
 if __name__ == "__main__":
     main()
