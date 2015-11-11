@@ -142,7 +142,8 @@ def make_vectors(data_frame, size=100, wt_sep='~~~'):
         raise TypeError('wt_sep parameter must be of type string')
 
     words = [word for word in data_frame['word'].tolist()]
-    tags = [tag for tag in list(data_frame['tag'])]
+    pos_tags = [tag for tag in list(data_frame['POS'])]
+    ner_tags = [tag for tag in list(data_frame['NER'])]
 
     #ensure word, tag separator is not in any word within the data so we can
     #recover words and tags later without ambiguity
@@ -151,7 +152,8 @@ def make_vectors(data_frame, size=100, wt_sep='~~~'):
             logging.critical(
                 'ERROR: ' + wt_sep + ' appears in \'' + word + '\' in data')
 
-    sentences = [[words[i] + '~~~' + tags[i]] for i in range(len(words))]
+    sentences = [[words[i] + '~~~' + pos_tags[i] + '~~~' + ner_tags[i]] for i in range(len(words))]
+    #sentences = [[words[i]] for i in range(len(words))]
 
 
     #build model and save vectors into txt file
@@ -164,30 +166,30 @@ def make_vectors(data_frame, size=100, wt_sep='~~~'):
 
     #convert .txt file into list of lists of word-vector pairs and drop
     #dimensional summary
-    word_tag_and_vectors = []
+    word_tags_and_vectors = []
     with open('./vectors/vectors' + str(size) + '.txt', 'r') as f:
         for line in f:
-            word_tag_and_vectors.append(line.split())
+            word_tags_and_vectors.append(line.split())
 
-    word_tag_and_vectors = word_tag_and_vectors[1:]
+    word_tags_and_vectors = word_tags_and_vectors[1:]
 
 
     #split word-tag pairs from vectors and rewrite data with words and tags
     #in their own respective columns
-    words_tag_pairs = [p[0] for p in word_tag_and_vectors]
-    vectors = [v[1:] for v in word_tag_and_vectors]
+    words_tag_triples = [p[0] for p in word_tags_and_vectors]
+    vectors = [v[1:] for v in word_tags_and_vectors]
     data = []
     
-    for i in range(len(words_tag_pairs)):
-        word, tag = words_tag_pairs[i].split(wt_sep)
-        data.append([word, tag] + vectors[i])
+    for i in range(len(words_tag_triples)):
+        word, pos_tag, ner_tag = words_tag_triples[i].split(wt_sep)
+        data.append([word, pos_tag, ner_tag] + vectors[i])
 
 
     #create names for columns holding vector features in csv
     vec_columns = ['vec[' + str(i) + ']' for i in range(size)]
 
     #make pandas DataFrame object with words and vectors and save to csv
-    pd_data = pd.DataFrame(data, columns=['word', 'tag'] + vec_columns)
+    pd_data = pd.DataFrame(data, columns=['word', 'POS', 'NER'] + vec_columns)
     pd_data.to_csv('./vectors/vectors' + str(size) + '.csv', encoding='utf-8')
 
 def extract_matches(data_frame, raw_file='./vectors/raw_googlevectors.txt'):
@@ -234,8 +236,7 @@ def main():
         size = 100
 
     df = get_data()
-
-    #make_vectors(df, size=size)
+    make_vectors(df, size=size)
     
     #extract_matches(df, raw_file='./vectors/raw_googlevectors.txt')
     #extract_matches(df, raw_file='./vectors/raw_knowledge-vectors-skipgram1000.txt')

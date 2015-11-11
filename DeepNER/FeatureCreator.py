@@ -73,10 +73,11 @@ def split_data_matrix(matrix):
     matrix = np.delete(matrix, 0, 1)
 
     words = matrix[:,0]
-    tags = matrix[:,1]
-    vectors = matrix[:,2:].astype(np.float64)
+    pos_tags = matrix[:,1]
+    ner_tags = matrix[:,2]
+    vectors = matrix[:,3:].astype(np.float64)
 
-    return words, tags, vectors
+    return words, pos_tags, ner_tags, vectors
 
 def map_labels(labels, all_tags):
     """Map unicode labels to numpy.int64 values."""
@@ -102,32 +103,31 @@ def main():
     set_verbosity(0)
     #make training and test sets
     #train_data, valid_data, test_data = make_data('./vectors/vectors300.csv', test_size=0.20)
-    train_data, valid_data, test_data = make_data('./vectors/googlevectors300.csv', test_size=0.20)
-    #train_data, valid_data, test_data = make_data('./vectors/subset_googlevectors.csv', test_size=0.20)
+    train_data, valid_data, test_data = make_data('./vectors/vectors100.csv', test_size=0.20)
+    #train_data, valid_data, test_data = make_data('./vectors/googlevectors300.csv', test_size=0.20)
     logging.info("Created raw training and test sets")
 
 
     #split sets into their components
-    train_words, train_labels, train_vectors = split_data_matrix(train_data)
-    valid_words, valid_labels, valid_vectors = split_data_matrix(valid_data)
-    test_words, test_labels, test_vectors = split_data_matrix(test_data)
-
+    train_words, train_pos_labels, train_ner_labels, train_vectors = split_data_matrix(train_data)
+    valid_words, valid_pos_labels, valid_ner_labels, valid_vectors = split_data_matrix(valid_data)
+    test_words, test_pos_labels, test_ner_labels, test_vectors = split_data_matrix(test_data)
 
     #map tags to np.int64's
-    train_tags, valid_tags, test_tags = np.unique(train_labels), np.unique(valid_labels), np.unique(test_labels)
+    train_tags, valid_tags, test_tags = np.unique(train_ner_labels), np.unique(valid_ner_labels), np.unique(test_ner_labels)
     all_tags = list(set(train_tags) | set(valid_tags) | set(test_tags))
 
     #map labels in each set to ints
-    train_labels, mapping = map_labels(train_labels, all_tags)
-    valid_labels, mapping = map_labels(valid_labels, all_tags)
-    test_labels, mapping = map_labels(test_labels, all_tags)
+    train_labels, mapping = map_labels(train_ner_labels, all_tags)
+    valid_labels, mapping = map_labels(valid_ner_labels, all_tags)
+    test_labels, mapping = map_labels(test_ner_labels, all_tags)
     logging.info('Created parsed training and test data')
 
 
     #prep data for lisa-labs DBN; convert to Theano
-    train_set = (train_vectors, train_labels)
-    valid_set = (valid_vectors, valid_labels)
-    test_set = (test_vectors, test_labels)
+    train_set = (train_vectors, train_ner_labels)
+    valid_set = (valid_vectors, valid_ner_labels)
+    test_set = (test_vectors, test_ner_labels)
 
     train_set_x, train_set_y = cast_to_Theano(train_set)
     valid_set_x, valid_set_y = cast_to_Theano(valid_set)
@@ -140,7 +140,7 @@ def main():
 
 
     finetune_lr=0.1
-    pretraining_epochs=10
+    pretraining_epochs=2
     pretrain_lr=0.01
     k=1
     training_epochs=1000
