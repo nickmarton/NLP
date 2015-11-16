@@ -6,7 +6,10 @@ import nltk
 import codecs
 import logging
 import gensim
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from nolearn.dbn import DBN
 
 def set_verbosity(verbose_level=3):
     """Set the level of verbosity of the Preprocessing."""
@@ -103,14 +106,16 @@ def get_data(filename='./word_and_tags.csv'):
         for i in range(len(data)):
             word, ner_tag = data[i]
             pos_tag = tagged[i][1]
-            new_data.append([word, pos_tag, ner_tag])
+            if len(ner_tag) < 8:
+                #new_data.append([word, ner_tag])
+                new_data.append([word, pos_tag, ner_tag])
 
             if i % 10000 == 0:
                 logging.info(str(i) + " words processed")
 
-
         #make DataFrame object from data string
         pd_data = pd.DataFrame(new_data, columns=['word', 'POS', 'NER'])
+        #pd_data = pd.DataFrame(new_data, columns=['word', 'NER'])
         logging.info("Done creating DataFrame")
 
         pd_data = pd_data.drop_duplicates()
@@ -192,39 +197,119 @@ def make_vectors(data_frame, size=100, wt_sep='~~~'):
     pd_data = pd.DataFrame(data, columns=['word', 'POS', 'NER'] + vec_columns)
     pd_data.to_csv('./vectors/vectors' + str(size) + '.csv', encoding='utf-8')
 
-def extract_matches(data_frame, raw_file='./vectors/raw_googlevectors.txt'):
-    """Extract matches of word + vectors in raw file also in DataFrame."""
-    words = data_frame['word'].tolist()
+def filter_google_vectors():
+    """
+    Filter out vectors of words in google vector set not in provided NER
+    annotated data. Other vectors are irrelevant for training purposes.
 
-    from collections import defaultdict
-    m = defaultdict(list)
+    Function assumes that data is stored in the same format used by the
+    original C word2vec-tool.
+    """
+
+    _filter_vectors("./vectors/raw_googlevectors.txt", size=300, skip_index=0)
+
+def filter_freebase_vectors():
+    """
+    Filter out vectors of words in freebase vector set not in provided NER
+    annotated data. Other vectors are irrelevant for training purposes.
+
+    Function assumes that data is stored in the same format used by the
+    original C word2vec-tool.
+    """
+
+    if not os.path.exists('./vectors/freebase-vectors-skipgram1000-en.txt'):
+        model = gensim.models.Word2Vec.load_word2vec_format(
+            './vectors/freebase-vectors-skipgram1000-en.bin', binary=True)
+        model.save_word2vec_format(
+            './vectors/freebase-vectors-skipgram1000-en.txt')
+    
+    _filter_vectors("./vectors/freebase-vectors-skipgram1000-en.txt", size=1000, skip_index=4)
+
+def _filter_vectors(filename, size, skip_index):
+    """Filter vectors from filename."""
+    word_map = {}
+
+    df = get_data("./word_and_tags.csv")
+    words = df['word'].tolist()
     for word in words:
-        m[word[0:1]].append(word)
+        word_map[word] = True
 
-    f_write = open("./vectors/subset" + raw_file[13:], 'w')    
+    logging.info("Build word map")
 
-    counter = 0
-    with open(raw_file, 'r') as f:
+    count = 0
+    matches = {}
+    with open(filename , "r") as f:
         for line in f:
-
-            counter += 1
+            count += 1
             
-            word = line.split()[0]
-            if word in m[word[0:1]]:
-                f_write.write(line)
+            datum = line.strip().split()
+            word, vec = datum[0][skip_index:], ' '.join(datum[1:])
 
-            if counter % 10000 == 0:
-                logging.info(str(counter) + " words processed")
+            try:
+                word_map[word]
+                matches[word] = vec
+            except KeyError:
+                pass
+            
+            if count % 100000 == 0:
+                logging.info(str(count) + " words processed")
+
+    logging.info("Done processing words with " + str(len(matches)) + ", building data")
+
+    data = [[word] + vec.split() for word, vec in matches.items()]
+
+    #create names for columns holding vector features in csv
+    vec_columns = ['vec[' + str(i) + ']' for i in range(size)]
+
+    #make pandas DataFrame object with words and vectors and save to csv
+    pd_data = pd.DataFrame(data, columns=['word'] + vec_columns)
+    pd_data.to_csv(filename[:-3] + 'csv', encoding='utf-8')
+
+def get_overlap(data_frame_1, data_frame_2):
+    """."""
+    word_map = {}
+    words_1 = data_frame_1.values
+    words_2 = data_frame_2.values
+    
+    for series in words_1:
+        lis =  series.tolist()[1:]
+        word_map[lis[0]] = lis
+    
+    overlap = []
+    for word in words_2:
+        try:
+            word_map[word[1]]
+            overlap.append(word_map[word[1]] + list(word[2:]))
+        except KeyError:
+            pass
+
+    size = len(overlap[0]) - 3
+
+    #create names for columns holding vector features in csv
+    vec_columns = ['vec[' + str(i) + ']' for i in range(size)]
+    #make pandas DataFrame object with words and vectors and save to csv
+    overlap_df = pd.DataFrame(overlap, columns=['word', 'POS', 'NER'] + vec_columns)
+    return overlap_df
+
+def map_labels(data_frame):
+    """Map unicode labels to numpy.int64 values."""
+    labels = data_frame['NER'].unique()
+    label_map = {}
+    for i in range(len(labels)):
+        label_map[labels[i]] = np.int64(i)
+    return label_map, labels
+
+def save_overlap(data_frame, filename):
+    """."""
+    #create names for columns holding vector features in csv
+    vec_columns = ['vec[' + str(i) + ']' for i in range(data_frame.values.shape[1] - 3)]
+    #make pandas DataFrame object with words and vectors and save to csv
+    data_frame = pd.DataFrame(data_frame, columns=['word', 'POS', 'NER'] + vec_columns)
+    data_frame.to_csv(filename, encoding='utf-8', index=False)
 
 def main():
     """Quick tests."""
-
-    #FOR COMPARISON:
-    #text8
-    #Vocab size: 428554
-    #Words in train file: 15772268
-
-    set_verbosity()
+    set_verbosity(3)
     
     try:
         size = int(sys.argv[1])
@@ -235,11 +320,51 @@ def main():
         logging.error('No vector size provided; defaulting to 100')
         size = 100
 
-    df = get_data()
-    make_vectors(df, size=size)
-    
-    #extract_matches(df, raw_file='./vectors/raw_googlevectors.txt')
-    #extract_matches(df, raw_file='./vectors/raw_knowledge-vectors-skipgram1000.txt')
+    '''
+    #filter_google_vectors()
+    #filter_freebase_vectors()
+    '''
+
+    #'''
+    from sklearn.cross_validation import train_test_split
+
+    df1 = get_data()
+    df2 = get_data("./vectors/raw_googlevectors.csv")
+    #df2 = get_data("./vectors/freebase-vectors-skipgram1000-en.csv")
+    overlap_df = get_overlap(df1, df2)
+    label_map, labels = map_labels(overlap_df)
+
+    train_data, test_data = train_test_split(overlap_df, test_size=0.20)
+
+    trainX, trainY, testX, testY = [], [], [], []
+    for datum in train_data.values:
+        trainX.append(datum[3:])
+        trainY.append(label_map[datum[2]])
+
+    trainX = np.array(trainX).astype(np.float)
+    trainY = np.array(trainY)
+
+    for datum in test_data.values:
+        testX.append(datum[3:])
+        testY.append(label_map[datum[2]])
+
+    testX = np.array(testX).astype(np.float)
+    testY = np.array(testY)
+
+    dbn = DBN(
+        [trainX.shape[1], 300, 200, 100, len(labels)],
+        learn_rates = 0.3,
+        learn_rate_decays = 0.9,
+        epochs = 50,
+        verbose = 1)
+
+    dbn.fit(trainX, trainY)
+
+    preds = dbn.predict(testX)
+    from sklearn.metrics import classification_report
+    print classification_report(testY, preds)
+    #'''
+    #df = subset_data(df, count=1000000)
 
 if __name__ == "__main__":
     main()
