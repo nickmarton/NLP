@@ -32,11 +32,11 @@ def set_verbosity(verbose_level=3):
         datefmt='%m/%d/%Y %I:%M:%S %p',
         level=verbosity[verbose_level])
 
-def dump_model(model):
+def dump_model(model, filename):
     """Dump DBN object into pickled file."""
     import pickle
     logging.info("Dumping model into model.pkl")
-    with open('model.pkl', 'w') as dump_file:
+    with open(filename, 'w') as dump_file:
         pickle.dump(model, dump_file)
 
 def parse_data(data, label_map):
@@ -62,15 +62,14 @@ def main():
     overlap_df = get_data("./vectors/google_overlap.csv")
     #overlap_df = get_data("./vectors/freebase_overlap.csv")
 
-    #'''
     overlap_df = overlap_df[overlap_df.NER != 'O']
     overlap_df = overlap_df.groupby("NER").filter(lambda x: len(x) > 50)
 
     label_map, labels = map_labels(overlap_df)
 
     X, y = parse_data(overlap_df, label_map)
-    trainX, testX, trainY, testY = train_test_split(X, y, test_size=0.20)
-    
+    trainX, testX, trainY, testY = train_test_split(X, y, test_size=0.00)
+
     #'''
     count, n_folds, scores = 0, 30, []
     logging.info("Beginning Cross Validation with " + str(n_folds) + " folds")    
@@ -104,7 +103,6 @@ def main():
 
     best_lr = max(scores, key=lambda x: x[0])[1]
     logging.info("Best CV score: " + str(best_lr))
-    #'''
 
     google_topology = [trainX.shape[1], 300, 200, 100, len(labels)]
     #freebase_topology = [trainX.shape[1], 750, 500, 250, len(labels)]
@@ -114,13 +112,18 @@ def main():
         google_topology,
         learn_rates=best_lr,
         learn_rate_decays=0.9,
-        epochs=50,
+        epochs=100,
         verbose=1)
 
     dbn.fit(trainX, trainY)
 
-    preds = dbn.predict(testX)
-    print classification_report(testY, preds)
+    #preds = dbn.predict(testX)
+    #print classification_report(testY, preds)
+
+    model_and_data = (dbn, label_map)
+    dump_model(model_and_data, './google_model.pkl')
+
+    #'''
 
     '''
     from sklearn.svm import SVC
