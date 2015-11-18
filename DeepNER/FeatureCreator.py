@@ -63,15 +63,25 @@ def main():
     #overlap_df = get_data("./vectors/freebase_overlap.csv")
 
     overlap_df = overlap_df[overlap_df.NER != 'O']
-    overlap_df = overlap_df.groupby("NER").filter(lambda x: len(x) > 50)
+    overlap_df = overlap_df[overlap_df.NER != 'I-FAC']
+    overlap_df = overlap_df[overlap_df.NER != 'B-FAC']
+    overlap_df = overlap_df[overlap_df.NER != 'I-LOC']
+    overlap_df = overlap_df[overlap_df.NER != 'B-LOC']
+    overlap_df = overlap_df[overlap_df.NER != 'I-WEA']
+    overlap_df = overlap_df[overlap_df.NER != 'B-WEA']
+    overlap_df = overlap_df[overlap_df.NER != 'I-VEH']
+    overlap_df = overlap_df[overlap_df.NER != 'B-VEH']
+    overlap_df = overlap_df[overlap_df.NER != 'I-TTL']
+    overlap_df = overlap_df[overlap_df.NER != 'B-TTL']
+    #overlap_df = overlap_df.groupby("NER").filter(lambda x: len(x) > 50)
+
 
     label_map, labels = map_labels(overlap_df)
-
     X, y = parse_data(overlap_df, label_map)
-    trainX, testX, trainY, testY = train_test_split(X, y, test_size=0.00)
+    trainX, testX, trainY, testY = train_test_split(X, y, test_size=0.10)
 
-    #'''
-    count, n_folds, scores = 0, 30, []
+
+    count, n_folds, scores = 0, 20, []
     logging.info("Beginning Cross Validation with " + str(n_folds) + " folds")    
     
     kf = KFold(len(trainX), n_folds=n_folds)
@@ -104,6 +114,7 @@ def main():
     best_lr = max(scores, key=lambda x: x[0])[1]
     logging.info("Best CV score: " + str(best_lr))
 
+
     google_topology = [trainX.shape[1], 300, 200, 100, len(labels)]
     #freebase_topology = [trainX.shape[1], 750, 500, 250, len(labels)]
 
@@ -117,11 +128,12 @@ def main():
 
     dbn.fit(trainX, trainY)
 
-    #preds = dbn.predict(testX)
-    #print classification_report(testY, preds)
+    preds = dbn.predict(testX)
+    print classification_report(testY, preds)
 
-    model_and_data = (dbn, label_map)
-    dump_model(model_and_data, './google_model.pkl')
+
+    #model_and_data = (dbn, label_map)
+    #dump_model(model_and_data, './google_model.pkl')
 
     #'''
 

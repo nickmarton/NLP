@@ -325,46 +325,5 @@ def main():
     #filter_freebase_vectors()
     '''
 
-    #'''
-    from sklearn.cross_validation import train_test_split
-
-    df1 = get_data()
-    df2 = get_data("./vectors/raw_googlevectors.csv")
-    #df2 = get_data("./vectors/freebase-vectors-skipgram1000-en.csv")
-    overlap_df = get_overlap(df1, df2)
-    label_map, labels = map_labels(overlap_df)
-
-    train_data, test_data = train_test_split(overlap_df, test_size=0.20)
-
-    trainX, trainY, testX, testY = [], [], [], []
-    for datum in train_data.values:
-        trainX.append(datum[3:])
-        trainY.append(label_map[datum[2]])
-
-    trainX = np.array(trainX).astype(np.float)
-    trainY = np.array(trainY)
-
-    for datum in test_data.values:
-        testX.append(datum[3:])
-        testY.append(label_map[datum[2]])
-
-    testX = np.array(testX).astype(np.float)
-    testY = np.array(testY)
-
-    dbn = DBN(
-        [trainX.shape[1], 300, 200, 100, len(labels)],
-        learn_rates = 0.3,
-        learn_rate_decays = 0.9,
-        epochs = 50,
-        verbose = 1)
-
-    dbn.fit(trainX, trainY)
-
-    preds = dbn.predict(testX)
-    from sklearn.metrics import classification_report
-    print classification_report(testY, preds)
-    #'''
-    #df = subset_data(df, count=1000000)
-
 if __name__ == "__main__":
     main()
